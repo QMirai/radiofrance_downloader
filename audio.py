@@ -12,6 +12,7 @@ import threading
 
 filename_src = []
 folder_path = None
+buttons_num = 0
 
 
 def clean_name(filename: str):
@@ -46,7 +47,9 @@ def get_audio_radiofrance(link, output_path, test) -> None:
     os.makedirs(folder_path, exist_ok=True)
 
     # Store iframe web element
-    buttons = driver.find_elements(By.CSS_SELECTOR, "button.Button.light.primary.small.circular.svelte-8vggd3")
+    global buttons_num
+    buttons = driver.find_elements(By.CSS_SELECTOR, "button.Button.light.primary.small.circular.svelte-1pyrdd1")
+    buttons_num = len(buttons)
     for button in buttons:
 
         title = str(button.get_attribute('aria-label'))
@@ -158,10 +161,16 @@ def radiofrance_downloader(parallel):
         print(result.stderr)
 
     with ThreadPoolExecutor(parallel) as executor:
-        while e.wait(timeout=30):
-            e.clear()
-            # threading.Thread(target=aria2c_downloader).start()
-            executor.submit(aria2c_downloader)
+        downloading_file = 0
+        while e.wait(timeout=20):                # wait until event.set(), which means that filename_src list receives
+            e.clear()                            # a tuple (filename, src), then clear that event for waiting the next.
+            executor.submit(aria2c_downloader)   # use threads in the pool to download files.
+            downloading_file += 1
+            if downloading_file == buttons_num:  # if downloading files number == found files number, it means that all
+                break                            # all files are being downloading or downloaded, no need to wait 20s.
+
+
+
 
 
 def main(link, output_path, parallel, test):
@@ -187,7 +196,7 @@ if __name__ == "__main__":
                         default="D:/podcasts",
                         help="output path, default path is D:/podcasts")
     parser.add_argument('-l', "--parallel", default=4,
-                        help="for test")
+                        help="parallel download number")
     parser.add_argument('-t', "--test", action="store_true",
                         help="for test")
 
