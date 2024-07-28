@@ -10,15 +10,58 @@ import os
 import subprocess
 import threading
 
-filename_src = []
+
 folder_path = None
 buttons_num = 0
+filename_src = []
 
 
-def clean_name(filename: str):
-    invalid_chars = r"[\\\/\:*?<>|]"
-    replace_char = '-'
+def __clean_name(filename: str):
+    filename = re.sub(r'/', '-', filename)
+    invalid_chars = r'[\\\:*?<>|"]'
+    replace_char = ' '
     return re.sub(invalid_chars, replace_char, filename)
+
+
+class RadioFrance:
+    def __init__(self, link, output_path, test):
+        self.link = link
+        self.output_path = output_path
+        self.test = test
+        self.filename_src = []
+        self.folder_path = None
+        self.buttons_num = 0
+
+
+# TODO: 整理下面的fonction，争取功能分开，工具归类为工具，运行为运行
+
+
+def close_banner(driver):
+    try:
+        driver.find_element(By.ID, 'didomi-notice-agree-button').click()
+    except Exception as ex:
+        print(ex)
+    time.sleep(2)
+
+
+def is_podcast(link):
+    pod = re.search(r'podcasts/(.+)', link).group(1)
+    if r'/' in pod:
+        return False
+    else:
+        return 'podcasts'
+
+
+def find_pod_title(driver, pod: bool, output_path):
+    if pod:
+        # 提取播客标题，以此作为文件夹名
+        folder_name = driver.find_element(By.CLASS_NAME, "CoverPodcast-title").text
+    else:
+        parent = driver.find_element(By.CLASS_NAME, "ParentShowCard-data")
+        folder_name = parent.find_element(By.TAG_NAME, 'a').text
+    global folder_path
+    folder_path = os.path.join(output_path, __clean_name(folder_name))
+    os.makedirs(folder_path, exist_ok=True)
 
 
 def get_audio_radiofrance(link, output_path, test) -> None:
@@ -33,22 +76,29 @@ def get_audio_radiofrance(link, output_path, test) -> None:
     # 打开网页
     driver.get(link)
 
-    try:
-        driver.find_element(By.ID, 'didomi-notice-agree-button').click()
-    except Exception as ex:
-        print(ex)
+    # 关闭 Cookies banner
+    close_banner(driver)
 
-    time.sleep(2)
+    # pod or ep: True / False
+    pod = is_podcast(link)
 
-    # 提取播客标题，以此作为文件夹名
-    folder_name = driver.find_element(By.CLASS_NAME, "CoverPodcast-title").text
-    global folder_path
-    folder_path = os.path.join(output_path, clean_name(folder_name))
-    os.makedirs(folder_path, exist_ok=True)
+    # 获取Podcast标题，并建立文件夹
+    find_pod_title(driver, pod, output_path)
 
-    # Store iframe web element
+    # loading and downloading
+    if pod:
+        download_pods(driver, test)
+    else:
+        download_ep(driver)
+
+    # 关闭浏览器窗口
+    driver.quit()
+
+
+def download_pods(driver, test):
+    buttons = driver.find_elements(By.CSS_SELECTOR,
+                                   "button.Button.light.primary.small.circular.svelte-1weqwpy")
     global buttons_num
-    buttons = driver.find_elements(By.CSS_SELECTOR, "button.Button.light.primary.small.circular.svelte-1pyrdd1")
     buttons_num = len(buttons)
     for button in buttons:
 
@@ -59,7 +109,7 @@ def get_audio_radiofrance(link, output_path, test) -> None:
             content = re.search(r'\s(.*) \|', title).group(1)
             title = episode + " " + content
         else:
-            title = clean_name(title[8:])
+            title = __clean_name(title[8:])
 
         # js 点击
         driver.execute_script("arguments[0].click();", button)
@@ -67,11 +117,11 @@ def get_audio_radiofrance(link, output_path, test) -> None:
         # 等待媒体文件加载
         time.sleep(5)
 
-        # 找到包含音频元素的<div>元素
-        div_element = driver.find_element(By.ID, 'player-wrapper')
+        # # 找到包含音频元素的<div>元素
+        # div_element = driver.find_element(By.ID, 'player-wrapper')
 
         # 在<div>元素的范围内查找音频元素
-        audio = div_element.find_element(By.TAG_NAME, 'audio')
+        audio = driver.find_element(By.TAG_NAME, 'audio')
 
         # 提取音频的src属性
         src = audio.get_attribute('src')
@@ -84,8 +134,28 @@ def get_audio_radiofrance(link, output_path, test) -> None:
         if test:
             break
 
-    # 关闭浏览器窗口
-    driver.quit()
+
+def download_ep(driver):
+    button = driver.find_element(By.CSS_SELECTOR,
+                                   "button.Button.light.primary.large.svelte-1weqwpy")
+    title = driver.find_element(By.CLASS_NAME, "CoverEpisode-title").text
+
+    # js 点击
+    # driver.execute_script("arguments[0].click();", button)
+    button.click()
+
+    # 等待媒体文件加载
+    time.sleep(5)
+
+    # 在<div>元素的范围内查找音频元素
+    audio = driver.find_element(By.TAG_NAME, 'audio')
+
+    # 提取音频的src属性
+    src = audio.get_attribute('src')
+    print(title, src)
+    filename = title + re.search(r"\.\w{3}$", src).group()
+    filename_src.append((filename, src))
+    e.set()
 
 
 def get_audio_listennote(link, output_path) -> None:
@@ -104,7 +174,7 @@ def get_audio_listennote(link, output_path) -> None:
     time.sleep(2)
 
     # 提取播客标题，以此作为文件名
-    title = clean_name(driver.find_element(By.CSS_SELECTOR, 'a.font-bold.ln-l1-text.inline').text)
+    title = __clean_name(driver.find_element(By.CSS_SELECTOR, 'a.font-bold.ln-l1-text.inline').text)
 
     # 点击 MORE 按钮，以便出现下载选项
     button = driver.find_element(By.CSS_SELECTOR, 'a[aria-label="MORE"]')
@@ -168,9 +238,6 @@ def radiofrance_downloader(parallel):
             downloading_file += 1
             if downloading_file == buttons_num:  # if downloading files number == found files number, it means that all
                 break                            # all files are being downloading or downloaded, no need to wait 20s.
-
-
-
 
 
 def main(link, output_path, parallel, test):
