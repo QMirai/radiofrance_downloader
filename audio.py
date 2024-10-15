@@ -18,7 +18,7 @@ filename_src = []
 
 def __clean_name(filename: str):
     filename = re.sub(r'/', '-', filename)
-    invalid_chars = r'[\\\:*?<>|"]'
+    invalid_chars = r'[\:*?<>|":]'
     replace_char = ' '
     return re.sub(invalid_chars, replace_char, filename)
 
@@ -104,7 +104,7 @@ def download_pods(driver, test):
 
         title = str(button.get_attribute('aria-label'))
 
-        if "Ep" in title:
+        if "Ep " in title:
             episode = re.search(r"Ep\s?\d", title).group()
             content = re.search(r'\s(.*) \|', title).group(1)
             title = episode + " " + content
@@ -139,6 +139,7 @@ def download_ep(driver):
     button = driver.find_element(By.CSS_SELECTOR,
                                    "button.Button.light.primary.large.svelte-1weqwpy")
     title = driver.find_element(By.CLASS_NAME, "CoverEpisode-title").text
+    title = __clean_name(title)
 
     # js 点击
     # driver.execute_script("arguments[0].click();", button)
