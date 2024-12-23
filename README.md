@@ -66,15 +66,10 @@ python audio.py <link> [options]
 
 ---
 
-## Examples
+## Example
 ### Download Podcasts from Radio France
 ```bash
-python script.py "https://www.radiofrance.fr/example-podcast" -p "/home/user/podcasts" -l 3
-```
-
-### Download a Single Podcast (Test Mode)
-```bash
-python script.py "https://www.radiofrance.fr/example-podcast" -t
+python audio.py "https://www.radiofrance.fr/example-podcast" -p "/home/user/podcasts" -l 3
 ```
 
 ---
