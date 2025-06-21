@@ -97,7 +97,7 @@ def get_audio_radiofrance(link, output_path, test) -> None:
 
 def download_pods(driver, test):
     buttons = driver.find_elements(By.CSS_SELECTOR,
-                                   "button.Button.light.primary.small.circular.svelte-1weqwpy")
+                                   "button.Button.light.primary.small.circular.svelte-3444nd.circular")
     global buttons_num
     buttons_num = len(buttons)
     for button in buttons:
@@ -137,7 +137,7 @@ def download_pods(driver, test):
 
 def download_ep(driver):
     button = driver.find_element(By.CSS_SELECTOR,
-                                   "button.Button.light.primary.large.svelte-1weqwpy")
+                                   "button.Button.light.primary.large.svelte-3444nd")
     title = driver.find_element(By.CLASS_NAME, "CoverEpisode-title").text
     title = __clean_name(title)
 
