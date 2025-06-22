@@ -1,7 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
 import time
 import requests
@@ -242,6 +241,9 @@ def radiofrance_downloader(parallel):
 
 
 def main(link, output_path, parallel, test):
+    global e, lock
+    e = threading.Event()
+    lock = threading.Lock()
     if "radiofrance" in link:
         finder = threading.Thread(target=radiofrance_downloader, args=(parallel,))
         downloader = threading.Thread(target=get_audio_radiofrance, args=(link, output_path, test))
@@ -254,11 +256,8 @@ def main(link, output_path, parallel, test):
 
 
 def run(link, output_path="D:/podcasts", parallel=4, test=False):
-    global e, lock
-    e = threading.Event()
-    lock = threading.Lock()
     main(link, output_path, parallel, test)
-    return e, lock
+    # return e, lock
 
 
 # if __name__ == "__main__":
