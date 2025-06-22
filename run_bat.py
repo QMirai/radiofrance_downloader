@@ -19,6 +19,4 @@ if __name__ == "__main__":
                         help="for test")
 
     args = parser.parse_args()
-    e = threading.Event()
-    lock = threading.Lock()
     main(args.link, args.output_path, args.parallel, args.test)

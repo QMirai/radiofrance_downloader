@@ -257,7 +257,6 @@ def main(link, output_path, parallel, test):
 
 def run(link, output_path="D:/podcasts", parallel=4, test=False):
     main(link, output_path, parallel, test)
-    # return e, lock
 
 
 # if __name__ == "__main__":
